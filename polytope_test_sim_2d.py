@@ -1,0 +1,93 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from utils.generic_ltv_system.dt_ltv_system import dt_ltv_system
+from utils.observer.polytope_observer import polytope_observer
+#
+# Now for a 2D example!
+#
+
+T = 1 # timestep
+num_steps = 10
+n_state = 2
+n_output = 2
+
+# defining discrete-time LTV system state matrices
+def A(t):
+    return np.array([[0.85, 1.0],
+                     [0.0, 0.5]])
+
+def C(t):
+    return np.array([[1.0, 0.0],
+                     [0.0, 1.0]])
+
+def B(t):
+    return np.array([[0.0],
+                     [0.0]])
+
+def D(t):
+    return np.array([[0.0],
+                     [0.0]])
+
+
+x0 = np.array([5.0,5.0]) # initial condition
+
+# initialize LTV system object
+t0 = 0
+model = dt_ltv_system(A,B,C,D,x0,t0)
+
+# Building the polytope set-valued observer
+Aineq = np.array([[1.0, 0.0], 
+                  [-1.0, 0.0],
+                  [0.0, 1.0],
+                  [0.0, -1.0]])
+
+bineq = np.array([[10.0],
+                  [10.0],
+                  [10.0],
+                  [10.0]])
+
+state_noise = 0.01
+output_noise = 0.01
+
+observer = polytope_observer(Aineq,bineq,state_noise,output_noise)
+observer.fme_verbose = False
+sim_verbose = True
+
+u = np.array([0.0]) # set the input to be applied to system
+x = np.zeros((model.n_state,num_steps))
+x[:,0] = x0
+y = np.zeros((model.n_output,num_steps))
+
+# tracking polytopes
+polytopes = [observer.current_polytope()]
+ub = np.zeros_like(x) # we're in just R, so we can track upper and lower bounds at each step
+lb = np.zeros_like(x)
+ub[:,0] = observer.bineq[0,0]
+lb[:,0] = -observer.bineq[1,0]
+
+for step in range(1,num_steps):
+    if sim_verbose:
+        print('STEP {}'.format(step))
+    # pull relevant system matrices
+    (A_prev,_,C_prev,_) = model.system_matrices(model.t) #pull most recent system matrices
+   
+    # step dynamical system forward
+    model.step(u,T)
+    x[:,step] = model.x
+    y[:,step] = model.y
+    
+    # step observer forward 
+    observer.step(A_prev,C_prev,model.y)
+    observer.compute_chebyshev_center(verbose=True)
+    polytopes.append(observer.current_polytope())
+    
+    # print out observer progress details if desired
+    if sim_verbose:
+        print('True state:',model.x)
+        print('In polytope:',observer.test_membership(model.x))
+        print('Inequalities:')
+        for i in range(observer.num_ineq):
+            a = observer.Aineq[i,:]
+            b = observer.bineq[i,:]
+            flag = np.all(a @ model.x <= b)
+            print(a,b,flag)
