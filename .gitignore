@@ -2,4 +2,4 @@
 *.sync-conflict
 
 # pre-compiled package stuff
-utils/*/_pycache_
+utils/*/__pycache__
