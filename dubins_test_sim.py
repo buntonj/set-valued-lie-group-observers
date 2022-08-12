@@ -3,13 +3,15 @@ from utils.dubins_car.dubins_car import dubins_car # relative import of dubins c
 import matplotlib.pyplot as plt
 
 x0 = np.array([0.0,0.0,0.0]) # initial position and heading
+x0 = np.zeros((5,)) #initial position/heading, acc inputs
 output = 'gps'
 
-model = dubins_car(x0,output)
+model = dubins_car(x0,output,acc_inputs=True)
 
 T = 0.01 #simulation timestep
 num_steps = 400
 u = np.array([1.0,2.0]) # spin in a circle!
+u = np.array([1.0,1.0]) # SPIRAL FASTER
 
 x = np.zeros((model.n_state,num_steps))
 x[:,0] = x0

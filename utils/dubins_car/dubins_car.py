@@ -4,8 +4,14 @@ from scipy.integrate import solve_ivp
 
 
 class dubins_car :
-    def __init__(self,x0,output, apx_se2 = False):
-        self.n_state = 3
+    def __init__(self,x0,output,acc_inputs=False):
+        if acc_inputs : # option to include angular and linear acceleration inputs
+            self.n_state = 5 # state is x,y,theta, dv, dtheta
+            self.rhs = self.rhs_acc_inputs
+        else :
+            self.n_state = 3
+            self.rhs = self.rhs_vel_inputs
+        
         self.x0 = x0 # save initial state for resetting purposes
         self.x = x0
         self.y = None
@@ -21,23 +27,34 @@ class dubins_car :
     def step(self,u,T):
         f = lambda t,x: self.rhs(x,u,t)
         sol = solve_ivp(f,(0,T),self.x)
-        self.x = (sol.y[:,-1] + np.pi) % (2*np.pi) - np.pi
+        self.x = sol.y[:,-1] 
+        self.x[0:2] = (self.x[0:2] + np.pi) % (2*np.pi) - np.pi
         self.y = self.output_map(self.x,u)
 
-    # ODE right-hand-side
+    # ODE right-hand-sides
     # input:
     # x - state variables, [x, y, theta]
-    # u - control input
+    # u - control input (velocity)
     # t - time
-    def rhs(self,x,u,t):
+    def rhs_vel_inputs(self,x,u,t):
         return np.array([u[0]*np.cos(x[2]), u[0]*np.sin(x[2]), u[0]*u[1]])
+
+    # input:
+    # x - state variables [x, y, theta, dv, dtheta]
+    # u - control input [u_v, a_theta] (accelerations)
+    # t - time
+    # returns:
+    # (5,) numpy array of the ODE right-hand-side with current applied inputs
+    def rhs_acc_inputs(self,x,u,t):
+        return np.array([x[3]*np.cos(x[2]), x[3]*np.sin(x[2]), x[3]*x[4], u[0], u[1]])
+    
 
     # range and bearing outputs
     # output is 2 x num_landmarks
     # y[:,i] = vector pointing to landmark i
     # not normalized, so distance to ith landmark is np.linalg.norm(y[i,:])
     def range_bearing_output(self,x,u):
-        y = -special_euclidean_inverse(self.state_group_rep()) @ np.vstack((self.landmarks,np.ones((1,3))))
+        y = -special_euclidean_inverse(self.state_group_rep(x)) @ np.vstack((self.landmarks,np.ones((1,3))))
         return y#[0:2,:]
         #return rotation_matrix(-x[2]) @ (x[0:2][:,np.newaxis] - self.landmarks)
 
@@ -46,7 +63,7 @@ class dubins_car :
     def gps_output(self,x,u):
         return x[0:2]
 
-    # left-inverse of output map for GPS outputs
+    # left-inverse of output map for range-bearing outputs
     def range_bearing_left_inverse(self,y):
         x = np.linalg.solve(np.vstack((self.landmarks,np.ones((1,3)))).T,-y.T)
         return x.T
@@ -73,6 +90,7 @@ class dubins_car :
             self.output_map = lambda x,u : None # otherwise, no output
 
     # return the current state as an element of SE(2)
+    # assumes input is ordered as [x,y,theta,__]
     def state_group_rep(self,state=None):
         if state is None:
             state = self.x
