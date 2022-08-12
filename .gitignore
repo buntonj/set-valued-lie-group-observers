@@ -1,2 +1,5 @@
 # stupid sync-conflict files made by my computer's hard drive backup
 *.sync-conflict
+
+# pre-compiled package stuff
+utils/*/_pycache_
