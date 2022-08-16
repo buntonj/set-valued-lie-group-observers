@@ -8,9 +8,11 @@ class dubins_car :
         if acc_inputs : # option to include angular and linear acceleration inputs
             self.n_state = 5 # state is x,y,theta, dv, dtheta
             self.rhs = self.rhs_acc_inputs
+            self.state_group_rep = self.state_group_rep_se2_x_R2
         else :
             self.n_state = 3
             self.rhs = self.rhs_vel_inputs
+            self.state_group_rep_se2_x_R2
         
         self.x0 = x0 # save initial state for resetting purposes
         self.x = x0
@@ -54,9 +56,9 @@ class dubins_car :
     # y[:,i] = vector pointing to landmark i
     # not normalized, so distance to ith landmark is np.linalg.norm(y[i,:])
     def range_bearing_output(self,x,u):
-        y = -special_euclidean_inverse(self.state_group_rep(x)) @ np.vstack((self.landmarks,np.ones((1,3))))
-        return y#[0:2,:]
-        #return rotation_matrix(-x[2]) @ (x[0:2][:,np.newaxis] - self.landmarks)
+        #y = -special_euclidean_inverse(self.state_group_rep(x)) @ np.vstack((self.landmarks,np.ones((1,3))))
+        #return y#[0:2,:]
+        return np.vstack((rotation_matrix(-x[2]) @ (x[0:2][:,np.newaxis] - self.landmarks),-np.ones((1,3))))
 
     # GPS reading outputs
     # output is just state position
@@ -91,7 +93,7 @@ class dubins_car :
 
     # return the current state as an element of SE(2)
     # assumes input is ordered as [x,y,theta,__]
-    def state_group_rep(self,state=None):
+    def state_group_rep_se2(self,state=None):
         if state is None:
             state = self.x
         G = np.zeros((3,3))
@@ -99,4 +101,10 @@ class dubins_car :
         G[0:2,2] = state[0:2]
         G[2,2] = 1.0
         return G
+
+    def state_group_rep_se2_x_R2(self,state=None):
+        if state is None:
+            state = (self.x[:3],self.x[3:])
+        G = self.state_group_rep_se2(state[0])
+        return (G,state[1])
 
