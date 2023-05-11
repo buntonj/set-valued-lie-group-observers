@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull
 from matplotlib.patches import Wedge
 from matplotlib.animation import FuncAnimation,PillowWriter
-from utils.shared.se2_utils import apx_special_euclidean_exponential, special_euclidean_exponential,apx_special_euclidean_logarithm,special_euclidean_logarithm
+from utils.shared.se2_utils import apx_special_euclidean_exponential,special_euclidean_exponential,apx_special_euclidean_logarithm,special_euclidean_logarithm
 from utils.shared.se2_utils import sample_simplex
 
 seed = 0
@@ -16,29 +16,29 @@ rng = np.random.default_rng(seed=seed)
 apx_se2 = True # should we approximate the SE(2) log and exp functions with taylor expansions?
 
 # defining shortcut handles for the lie algebra exponential and logarithm maps
-if apx_se2 :
+if apx_se2:
     exp = apx_special_euclidean_exponential
     log = apx_special_euclidean_logarithm
-else :
+else:
     exp = special_euclidean_exponential
     log = special_euclidean_logarithm
 
 
-x0 = 2.0*(rng.random((3,))-0.5) # initial position and heading, random in [-1,1]^3
-output = 'landmarks' # code is heavily tailored to this choice!
+x0 = 2.0*(rng.random((3,))-0.5)  # initial position and heading, random in [-1,1]^3
+output = 'landmarks'  # code is heavily tailored to this choice!
 
-model = dubins_car(x0,output)
+model = dubins_car(x0, output)
 
-landmarks = model.landmarks # pull the landmark locations
+landmarks = model.landmarks  # pull the landmark locations
 num_landmarks = landmarks.shape[1] # number of landmarks in simulation
 
-T = 0.01 #simulation timestep
-num_steps = 10
-u = np.array([1.0,2.0]) # spin in a circle!
+T = 0.01  # simulation timestep
+num_steps = 500
+u = np.array([1.0, 2.0]) # spin in a circle!
 
-x = np.zeros((model.n_state,num_steps))
+x = np.zeros((model.n_state, num_steps))
 x[:,0] = x0
-y = np.zeros((*model.n_output,num_steps))
+y = np.zeros((*model.n_output, num_steps))
 y[:,:,0] = model.output_map(x[:,0],u)
 
 # setting up reference system
@@ -283,7 +283,7 @@ def sample_states(i,num_samples): # randomly generates num_samples feasible stat
     return sampled_states
 
 def update(i):
-    title = 'Timestep {}'.format(i)
+    title = f'Timestep {i}'
     pts = sample_states(i,num_samples)
     hull = ConvexHull(pts.T[:,0:2])
     #sample_sc.set_offsets(np.c_[pts[0,:],pts[1,:]])
@@ -294,11 +294,11 @@ def update(i):
     est_angle.set_theta2(ub)
     truth_angle.set_data(x=x[0,i],y=x[1,i],dx=s*np.cos(x[2,i]),dy=s*np.sin(x[2,i]))
     poly.set_xy(pts.T[hull.vertices,0:2])
-    truth_sc.set_offsets(np.c_[x[0,i],x[1,i]])
+    truth_sc.set_offsets(np.c_[x[0,i], x[1,i]])
     ax5.set_title(title)
-    return poly, truth_sc,truth_sc,est_angle
+    return poly, truth_sc, truth_angle, est_angle
 
-anim = FuncAnimation(f5,update,frames=np.arange(0,num_steps),repeat=True,interval=200,blit=True)
+anim = FuncAnimation(f5,update,frames=np.arange(0,num_steps),repeat=True,interval=200,blit=False)
 
 anim.save('set_evolution.gif', dpi=300, writer=PillowWriter(fps=5))
 

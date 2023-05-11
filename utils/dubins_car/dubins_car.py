@@ -12,7 +12,7 @@ class dubins_car :
         else :
             self.n_state = 3
             self.rhs = self.rhs_vel_inputs
-            self.state_group_rep_se2_x_R2
+            self.state_group_rep = self.state_group_rep_se2
         
         self.x0 = x0 # save initial state for resetting purposes
         self.x = x0
