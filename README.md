@@ -17,3 +17,7 @@ The novelty in this exploration was that the the dynamics are nonlinear, but the
 In the "utils" folder there are the Dubins-car and linear-time-varying system python classes for use in simulation.
 
 Within shared utils, there are appropriate Lie logarithm and exponential maps as needed by the various simulations.  The outermost example python files run simple examples to check the set-valued observer (polytope_test_sim_1d.py and polytope_test_sim_2d.py) and the dubins car (dubins_test_sim.py). The files (dubins_polytope_observer.py and dubins_polytope_observer_th.py) use the polytope observer on the lie logarithm of the error dynamics of the Dubins car.
+
+Visualization:
+
+<img src="./set_evolution.gif" width="500"/>
